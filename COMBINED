@@ -1,0 +1,580 @@
+# Assuming 'data' is your data frame
+# Rename the column "PRIMARY STRUCTURE" to "primary_structure"
+colnames(data)[colnames(data) == "DESC"] <- "primary_structure"
+
+colnames(data)[colnames(data) == "QUALGRADE"] <- "grade"
+
+colnames(data)[colnames(data) == "HEATEDSF"] <- "GLA"
+
+colnames(data)[colnames(data) == "YR_BUILT"] <- "year_built"
+
+colnames(data)[colnames(data) == "LAND"] <- "lot_size"
+# Create an empty data frame to store the results
+Condition_cod <- data.frame(Condition_Category = character(0), count = integer(0), cod = character(0), median = character(0), mean = character(0))
+
+# Define the condition categories of interest
+conditions_of_interest <- unique(data$DEP)
+
+# Create an empty list to store individual results for each condition
+results_list <- list()
+
+# Iterate through each condition category and calculate the result
+for (condition in conditions_of_interest) {
+  # Check if the condition is NA (skip it)
+  if (is.na(condition)) {
+    next  # Skip this iteration
+  }
+
+  # Filter the data to include only rows where CONDITION matches the current condition category
+  condition_data <- data[data$DEP == condition, ]
+
+  # Filter the data further to include only rows where ASR is between 0.7 and 1.3
+  condition_data <- condition_data[condition_data$SRATIO >= 0.7 & condition_data$SRATIO <= 1.3, ]
+
+  # Add a filter condition to exclude rows where 'primary_structure' is 'Outbuildings'
+  condition_data <- condition_data[condition_data$primary_structure != "Outbuildings", ]
+
+  # Calculate the number of sales in the current condition category based on a specific column (e.g., 'SRATIO')
+  num_sales <- sum(!is.na(condition_data$ASR))
+
+  # If 'count' is 0, skip the rest of the processing for this condition
+  if (num_sales == 0) {
+    next
+  }
+
+  # Initialize the variables
+  cod <- ""
+  median_val <- ""
+  mean_val <- ""
+
+  # Calculate the median of ASR for the current condition category
+  median_value <- median(condition_data$ASR, na.rm = TRUE)
+
+  # If there is only one sale, set the cod to "only one sale" and display median
+  if (num_sales == 1) {
+    cod <- "only one sale"
+    median_val <- round(median_value, 3)
+  } else {
+    # Calculate the ratio (subtract each element from the median and take the absolute value)
+    ratios <- abs(condition_data$SRATIO - median_value)
+
+    # Calculate the average of the ratios
+    average_ratio <- mean(ratios, na.rm = TRUE)
+
+    # Divide the average_ratio by the median and multiply by 100
+    cod <- round((average_ratio / median_value) * 100, 3)
+    median_val <- round(median_value, 3)
+    mean_value <- mean(condition_data$ASR, na.rm = TRUE)
+    mean_val <- round(mean_value, 3)
+  }
+
+  # Create a data frame with the condition name, count, cod, median, and mean, and store it in the results_list
+  result_df <- data.frame(Condition_Category = condition, count = num_sales, cod = cod, median = median_val, mean = mean_val)
+  results_list[[condition]] <- result_df
+}
+
+# Combine all the individual results into a single data frame
+for (result in results_list) {
+  Condition_cod <- rbind(Condition_cod, result)
+}
+
+# Print the Condition_cod data frame
+print(Condition_cod)
+
+# Create an empty data frame to store the results
+Year_cod <- data.frame(Year_Range = character(0), count = integer(0), cod = character(0), median = character(0), mean = character(0))
+
+# Define the year ranges of interest
+year_ranges_of_interest <- c("1700-1799", "1800-1849")
+start_year <- 1850
+current_year <- as.integer(format(Sys.Date(), "%Y"))  # Get the current year
+
+while (start_year <= current_year) {
+  end_year <- start_year + 9
+  year_range <- paste(start_year, end_year, sep = "-")
+  
+  # Filter the data to include only rows where 'year_built' falls within the current range
+  year_data <- data[data$year_built >= start_year & data$year_built <= end_year, ]
+  
+  # Add a filter condition to exclude rows where 'GLA' is equal to 0
+  year_data <- year_data[year_data$GLA != 0, ]
+  
+  # Filter the data to include only rows where 'ASR' is between 0.7 and 1.3
+  year_data <- year_data[year_data$ASR >= 0.7 & year_data$ASR <= 1.3, ]
+
+  # Calculate the number of sales in the current year range
+  num_sales <- sum(!is.na(year_data$ASR))
+  
+  # Initialize the variables
+  cod <- ""
+  median_val <- ""
+  mean_val <- ""
+  
+  if (num_sales > 0) {
+    # Calculate the median and mean of ASR for the current year range
+    median_value <- median(year_data$ASR, na.rm = TRUE)
+    mean_value <- mean(year_data$ASR, na.rm = TRUE)
+
+    # Calculate the ratio (subtract each element from the median and take the absolute value)
+    ratios <- abs(year_data$ASR - median_value)
+    
+    # Calculate the average of the ratios
+    average_ratio <- mean(ratios, na.rm = TRUE)
+    
+    # Divide the average_ratio by the median and multiply by 100
+    cod <- round((average_ratio / median_value) * 100, 3)
+    median_val <- round(median_value, 3)
+  
+    # Calculate the mean value without trimming
+    mean_val <- round(mean_value, 3)
+  }
+  
+  # Create a data frame with the year range, count, cod, median, and mean, and append it to Year_cod
+  result_df <- data.frame(Year_Range = year_range, count = num_sales, cod = cod, median = median_val, mean = mean_val)
+  Year_cod <- rbind(Year_cod, result_df)
+  
+  # Increment the start_year by 10 for the next iteration
+  start_year <- start_year + 10
+}
+
+# Add a separate category for the current year
+current_year_range <- "Current Year"
+current_year_data <- data[data$year_built == current_year, ]
+
+# Add a filter condition to exclude rows where 'GLA' is equal to 0
+current_year_data <- current_year_data[current_year_data$GLA != 0, ]
+
+# Filter the data to include only rows where 'ASR' is between 0.7 and 1.3
+current_year_data <- current_year_data[current_year_data$ASR >= 0.7 & current_year_data$ASR <= 1.3, ]
+
+# Calculate the number of sales in the current year
+num_sales <- sum(!is.na(current_year_data$ASR))
+
+# Initialize the variables
+cod <- ""
+median_val <- ""
+mean_val <- ""
+
+if (num_sales > 0) {
+  # Calculate the median and mean of ASR for the current year
+  median_value <- median(current_year_data$ASR, na.rm = TRUE)
+  mean_value <- mean(current_year_data$ASR, na.rm = TRUE)
+
+  # Calculate the ratio (subtract each element from the median and take the absolute value)
+  ratios <- abs(current_year_data$ASR - median_value)
+  
+  # Calculate the average of the ratios
+  average_ratio <- mean(ratios, na.rm = TRUE)
+  
+  # Divide the average_ratio by the median and multiply by 100
+  cod <- round((average_ratio / median_value) * 100, 3)
+  median_val <- round(median_value, 3)
+  
+  # Calculate the mean value without trimming
+  mean_val <- round(mean_value, 3)
+}
+
+# Create a data frame for the current year and append it to Year_cod
+result_df <- data.frame(Year_Range = current_year_range, count = num_sales, cod = cod, median = median_val, mean = mean_val)
+Year_cod <- rbind(Year_cod, result_df)
+
+# Print the Year_cod data frame
+print(Year_cod)
+
+# Assuming 'data' is your data frame
+
+# Create an empty data frame to store the results
+LotSize_cod <- data.frame(LotSize_Category = character(0), count = integer(0), cod = character(0), median = character(0), mean = character(0))
+
+# Define the lot size categories of interest
+lot_size_ranges <- c("0 to 0.5", "0.5 to 1", "1 to 1.5", "1.5 to 2", "greater than 2")
+
+# Iterate through each lot size category and calculate the result
+for (lot_size_category in lot_size_ranges) {
+  # Define the lower and upper bounds of the current lot size range
+  if (lot_size_category == "0 to 0.5") {
+    lower_bound <- 0
+    upper_bound <- 0.5
+  } else if (lot_size_category == "0.5 to 1") {
+    lower_bound <- 0.5
+    upper_bound <- 1
+  } else if (lot_size_category == "1 to 1.5") {
+    lower_bound <- 1
+    upper_bound <- 1.5
+  } else if (lot_size_category == "1.5 to 2") {
+    lower_bound <- 1.5
+    upper_bound <- 2
+  } else if (lot_size_category == "greater than 2") {
+    lower_bound <- 2
+    upper_bound <- Inf  # Represents infinity
+  }
+  
+  # Filter the data to include only rows where lot_size falls within the current range
+  LotSize_data <- data[data$lot_size >= lower_bound & data$lot_size <= upper_bound, ]
+  
+  # Filter the data further to include only rows where ASR is between 0.7 and 1.3
+  LotSize_data <- LotSize_data[LotSize_data$ASR >= 0.7 & LotSize_data$ASR <= 1.3, ]
+
+  # Calculate the number of sales in the current lot size category
+  num_sales <- nrow(LotSize_data)
+  
+  # Initialize the variables
+  cod <- ""
+  median_val <- ""
+  mean_val <- ""
+  
+  # Calculate the median and mean of ASR for the current lot size category
+  median_value <- median(LotSize_data$ASR, na.rm = TRUE)
+  mean_value <- mean(LotSize_data$ASR, na.rm = TRUE)
+  
+  # Calculate the ratio (subtract each element from the median and take the absolute value)
+  ratios <- abs(LotSize_data$ASR - median_value)
+  
+  # Calculate the average of the ratios
+  average_ratio <- mean(ratios, na.rm = TRUE)
+  
+  # Divide the average_ratio by the median and multiply by 100
+  cod <- round((average_ratio / median_value) * 100, 3)
+  median_val <- round(median_value, 3)
+  mean_val <- round(mean_value, 3)
+  
+  # Create a data frame with the LotSize category, count, cod, median, and mean, and append it to LotSize_cod
+  result_df <- data.frame(LotSize_Category = lot_size_category, count = num_sales, cod = cod, median = median_val, mean = mean_val)
+  LotSize_cod <- rbind(LotSize_cod, result_df)
+}
+
+# Print the LotSize_cod data frame
+print(LotSize_cod)
+# Create an empty data frame to store the results
+structure_cod <- data.frame(primary_structure = character(0), 
+                            count = integer(0), 
+                            result = numeric(0), 
+                            mean = numeric(0), 
+                            median = numeric(0))  # Adding mean and median columns
+
+# Define the primary_structure categories of interest
+categories_of_interest <- c(
+  "Single Family",
+  "Duplex/Triplex",
+  "Outbuildings",
+  "Manufactured Double Wide",
+  "Manufactured Single Wide",
+  "Townhome (end)",
+  "Townhome (int)",
+  "Condo"
+)
+
+# Iterate through each category and calculate the result
+for (category in categories_of_interest) {
+  # Filter the data to include only rows where primary_structure matches the current category
+  category_data <- data[data$primary_structure == category, ]
+  
+  # Trim the data by removing values below 0.7 and above 1.3
+  category_data <- category_data[category_data$ASR >= 0.7 & category_data$ASR <= 1.3, ]
+  
+  # Calculate the number of sales in the current category
+  num_sales <- nrow(category_data)
+  
+  # Calculate the median of ASR for the current category
+  median_value <- median(category_data$ASR, na.rm = TRUE)
+  
+  # Calculate the mean of ASR for the current category
+  mean_value <- mean(category_data$ASR, na.rm = TRUE)
+  
+  # Calculate the ratio (subtract each element from the median and take the absolute value)
+  ratios <- abs(category_data$ASR - median_value)
+  
+  # Calculate the average of the ratios
+  average_ratio <- mean(ratios, na.rm = TRUE)
+  
+  # Divide the average_ratio by the median and multiply by 100
+  result <- (average_ratio / median_value) * 100
+  
+  # Create a data frame with the category name, count, result, mean, and median
+  result_df <- data.frame(primary_structure = category, 
+                          count = num_sales, 
+                          result = result, 
+                          mean = mean_value, 
+                          median = median_value)
+  
+  # Append it to structure_cod
+  structure_cod <- rbind(structure_cod, result_df)
+}
+
+# Print the structure_cod data frame
+print(structure_cod)
+# Print the structure_cod data frame
+print(structure_cod)
+# Assuming 'data' is your data frame
+
+# Assuming 'data' is your data frame
+
+# Create an empty data frame to store the results
+NH_cod <- data.frame(NH = character(0), count = integer(0), cod = character(0), median = character(0), mean = character(0))
+
+# Define the NH categories of interest
+NH_categories_of_interest <- unique(data$NH)
+
+# Iterate through each NH category and calculate the result
+for (NH_category in NH_categories_of_interest) {
+  # Filter the data to include only rows where NH matches the current NH category
+  NH_data <- data[data$NH == NH_category, ]
+  
+  # Add a filter condition to exclude rows where 'GLA' is equal to 0
+  NH_data <- NH_data[NH_data$GLA != 0, ]
+  
+  # Filter the data to include only rows where ASR is between 0.7 and 1.3
+  NH_data <- NH_data[NH_data$ASR >= 0.7 & NH_data$ASR <= 1.3, ]
+
+  # Calculate the number of sales in the current NH category
+  num_sales <- nrow(NH_data)
+  
+  # Initialize the variables
+  cod <- ""
+  median_val <- ""
+  mean_val <- ""
+  
+  if (num_sales > 0) {
+    # Calculate the median and mean of ASR for the current NH category
+    median_value <- median(NH_data$ASR, na.rm = TRUE)
+    mean_value <- mean(NH_data$ASR, na.rm = TRUE)
+
+    # Calculate the ratio (subtract each element from the median and take the absolute value)
+    ratios <- abs(NH_data$ASR - median_value)
+    
+    # Calculate the average of the ratios
+    average_ratio <- mean(ratios, na.rm = TRUE)
+    
+    # Divide the average_ratio by the median and multiply by 100
+    cod <- round((average_ratio / median_value) * 100, 3)
+    median_val <- round(median_value, 3)
+  
+    # Calculate the mean value without trimming
+    mean_val <- round(mean_value, 3)
+  }
+  
+  # Create a data frame with the NH name, count, cod, median, and mean, and append it to NH_cod
+  result_df <- data.frame(NH = NH_category, count = num_sales, cod = cod, median = median_val, mean = mean_val)
+  NH_cod <- rbind(NH_cod, result_df)
+}
+
+# Print the NH_cod data frame
+print(NH_cod)
+
+# Assuming 'data' is your data frame
+
+# Create an empty data frame to store the results
+grade_cod <- data.frame(Grade = character(0), count = integer(0), cod = character(0), median = numeric(0), mean = numeric(0))
+
+# Define the grade categories of interest, excluding <NA>
+grades_of_interest <- unique(data$grade)
+grades_of_interest <- grades_of_interest[!is.na(grades_of_interest)]
+
+# Iterate through each grade category and calculate the result
+for (grade in grades_of_interest) {
+  # Filter the data to include only rows where grade matches the current grade category
+  grade_data <- data[data$grade == grade, ]
+  
+  # Add a filter condition to exclude rows where 'GLA' is equal to 0
+  grade_data <- grade_data[grade_data$GLA != 0, ]
+  
+  # Calculate the number of sales in the current grade category based on non-NA values in the 'ASR' column
+  num_sales <- sum(!is.na(grade_data$ASR))
+  
+  # Initialize the variables
+  cod <- ""
+  median_val <- 0
+  mean_val <- 0
+  
+  if (num_sales > 0) {
+    # Trim the data by removing values greater than 1.3 and less than 0.7
+    grade_data <- grade_data[grade_data$ASR <= 1.3 & grade_data$ASR >= 0.7, ]
+    
+    # Calculate the median of ASR for the current grade category
+    median_value <- median(grade_data$ASR, na.rm = TRUE)
+    
+    # Calculate the ratio (subtract each element from the median and take the absolute value)
+    ratios <- abs(grade_data$ASR - median_value)
+    
+    # Calculate the average of the ratios
+    average_ratio <- mean(ratios, na.rm = TRUE)
+    
+    # Divide the average_ratio by the median and multiply by 100
+    cod <- round((average_ratio / median_value) * 100, 3)
+    median_val <- round(median_value, 3)
+    mean_val <- round(mean(grade_data$ASR, na.rm = TRUE), 3)
+  }
+  
+  # Create a data frame with the grade name, count, cod, median, and mean, and append it to grade_cod
+  result_df <- data.frame(Grade = grade, count = num_sales, cod = cod, median = median_val, mean = mean_val)
+  grade_cod <- rbind(grade_cod, result_df)
+}
+
+# Print the grade_cod data frame
+print(grade_cod)
+
+# Extract the "ASR" column from your data frame
+ASR <- data$ASR
+
+# Trim the ASR values less than 0.7 and greater than 1.3
+ASR_trimmed <- ASR[ASR >= 0.7 & ASR <= 1.3]
+
+# Calculate the median of the trimmed ASR values
+median_value <- median(ASR_trimmed, na.rm = TRUE)
+
+# Calculate the ratio (subtract each element from the median and take the absolute value)
+ratios <- abs(ASR_trimmed - median_value)
+
+# Calculate the average of the ratios
+average_ratio <- mean(ratios, na.rm = TRUE)
+
+# Divide the average_ratio by the median and multiply by 100
+result <- (average_ratio / median_value) * 100
+
+# Print the result
+print(result)
+# Assuming 'data' is your data frame
+
+# Calculate the current year
+current_year <- as.integer(format(Sys.Date(), "%Y"))
+
+# Create an empty data frame to store the results
+YearBuilt_cod <- data.frame(YearBuilt_Category = character(0), count = integer(0), cod = character(0), median = character(0), mean = character(0))
+
+# Create a vector of year ranges
+year_ranges <- seq(1800, 1850, by = 50)
+year_ranges <- c(year_ranges, seq(1860, current_year, by = 10))
+
+# Iterate through each YearBuilt category and calculate the result
+for (i in 1:(length(year_ranges) - 1)) {
+  # Define the lower and upper bounds of the current year range
+  lower_bound <- year_ranges[i]
+  upper_bound <- year_ranges[i + 1] - 1  # Subtract 1 to create a closed interval
+  
+  # Filter the data to include only rows where year_built falls within the current range and is not equal to 0
+  YearBuilt_data <- data[data$year_built >= lower_bound & data$year_built <= upper_bound & data$year_built != 0, ]
+  
+  # Trim ASR values greater than 1.3 and less than 0.7
+  YearBuilt_data <- YearBuilt_data[YearBuilt_data$ASR >= 0.7 & YearBuilt_data$ASR <= 1.3, ]
+  
+  # Calculate the number of sales in the current YearBuilt category
+  num_sales <- nrow(YearBuilt_data)
+  
+  # Initialize the variables
+  cod <- ""
+  median_val <- ""
+  mean_val <- ""
+  
+  # Calculate the median of ASR for the current YearBuilt category
+  median_value <- median(YearBuilt_data$ASR, na.rm = TRUE)
+  
+  # Calculate the mean of ASR for the current YearBuilt category
+  mean_value <- mean(YearBuilt_data$ASR, na.rm = TRUE)
+  
+  # Calculate the ratio (subtract each element from the median and take the absolute value)
+  ratios <- abs(YearBuilt_data$ASR - median_value)
+  
+  # Calculate the average of the ratios
+  average_ratio <- mean(ratios, na.rm = TRUE)
+  
+  # Divide the average_ratio by the median and multiply by 100
+  cod <- round((average_ratio / median_value) * 100, 3)
+  median_val <- round(median_value, 3)
+  
+  # Round the mean value to 3 decimal points
+  mean_val <- round(mean_value, 3)
+  
+  # Create a data frame with the YearBuilt category, count, cod, median, and mean, and append it to YearBuilt_cod
+  result_df <- data.frame(YearBuilt_Category = paste0(lower_bound, "-", upper_bound), count = num_sales, cod = cod, median = median_val, mean = mean_val)
+  YearBuilt_cod <- rbind(YearBuilt_cod, result_df)
+}
+
+# Add a separate condition for "2020-2023"
+if (current_year >= 2020) {
+  YearBuilt_data_2020_2023 <- data[data$year_built >= 2020 & data$year_built <= current_year & data$year_built != 0, ]
+  
+  # Trim ASR values greater than 1.3 and less than 0.7 for "2020-2023" category
+  YearBuilt_data_2020_2023 <- YearBuilt_data_2020_2023[YearBuilt_data_2020_2023$ASR >= 0.7 & YearBuilt_data_2020_2023$ASR <= 1.3, ]
+  
+  # Calculate the number of sales in the "2020-2023" category
+  num_sales_2020_2023 <- nrow(YearBuilt_data_2020_2023)
+  
+  # Calculate the median and mean of ASR for the "2020-2023" category
+  median_value_2020_2023 <- median(YearBuilt_data_2020_2023$ASR, na.rm = TRUE)
+  mean_value_2020_2023 <- mean(YearBuilt_data_2020_2023$ASR, na.rm = TRUE)
+  
+  # Calculate the ratio (subtract each element from the median and take the absolute value)
+  ratios_2020_2023 <- abs(YearBuilt_data_2020_2023$ASR - median_value_2020_2023)
+  
+  # Calculate the average of the ratios
+  average_ratio_2020_2023 <- mean(ratios_2020_2023, na.rm = TRUE)
+  
+  # Divide the average_ratio by the median and multiply by 100 for "2020-2023" category
+  cod_2020_2023 <- round((average_ratio_2020_2023 / median_value_2020_2023) * 100, 3)
+  median_val_2020_2023 <- round(median_value_2020_2023, 3)
+  
+  # Round the mean value to 3 decimal points for "2020-2023" category
+  mean_val_2020_2023 <- round(mean_value_2020_2023, 3)
+  
+  # Create a data frame for the "2020-2023" category and append it to YearBuilt_cod
+  result_df_2020_2023 <- data.frame(YearBuilt_Category = "2020-2023", count = num_sales_2020_2023, cod = cod_2020_2023, median = median_val_2020_2023, mean = mean_val_2020_2023)
+  YearBuilt_cod <- rbind(YearBuilt_cod, result_df_2020_2023)
+}
+
+# Print the YearBuilt_cod data frame
+print(YearBuilt_cod)
+
+# Create an empty data frame to store the results
+gla_cod <- data.frame(GLA_Range = character(0), count = integer(0), cod = character(0), median = numeric(0), mean = numeric(0))
+
+# Define the GLA categories of interest
+gla_ranges <- c("100-800", "800-1300", "1300-1800", "1800-2400", "2400-3000", "3000-3600", "3600-4400", "4400-5000", "5000-6000", ">7000")
+
+# Iterate through each GLA category and calculate the result
+for (gla_range in gla_ranges) {
+  gla_data <- data
+  
+  if (gla_range != ">7000") {
+    # Extract the lower and upper bounds for the current GLA range
+    lower_bound <- as.numeric(str_extract(gla_range, "^\\d+"))
+    upper_bound <- as.numeric(str_extract(gla_range, "\\d+$"))
+    
+    # Filter the data to include only rows where 'GLA' falls within the current range
+    gla_data <- gla_data[gla_data$GLA >= lower_bound & gla_data$GLA <= upper_bound, ]
+  } else {
+    # For the ">7000" category, filter the data to include rows where 'GLA' is greater than 7000
+    gla_data <- gla_data[gla_data$GLA > 7000, ]
+  }
+  
+  # Calculate the number of sales in the current GLA category
+  num_sales <- sum(!is.na(gla_data$ASR))  # Count based on 'ASR'
+  
+  # Initialize the variables
+  cod <- ""
+  median_val <- 0
+  mean_val <- 0
+  
+  if (num_sales > 0) {
+    # Calculate the median and mean of 'ASR' for the current GLA category
+    median_value <- median(gla_data$ASR, na.rm = TRUE)  # Calculate median from 'ASR'
+    mean_value <- mean(gla_data$ASR, na.rm = TRUE)      # Calculate mean from 'ASR'
+    
+    # Calculate the ratio (subtract each element from the median and take the absolute value)
+    ratios <- abs(gla_data$ASR - median_value)
+    
+    # Calculate the average of the ratios
+    average_ratio <- mean(ratios, na.rm = TRUE)
+    
+    # Divide the average_ratio by the median and multiply by 100
+    cod <- round((average_ratio / median_value) * 100, 3)
+    median_val <- round(median_value, 3)
+    mean_val <- round(mean_value, 3)
+  }
+  
+  # Create a data frame with the GLA range, count, COD, median, and mean, and append it to gla_cod
+  result_df <- data.frame(GLA_Range = gla_range, count = num_sales, cod = cod, median = median_val, mean = mean_val)
+  gla_cod <- rbind(gla_cod, result_df)
+}
+
+# Print the gla_cod data frame
+print(gla_cod)
