@@ -1,0 +1,65 @@
+# Iterate through each condition category and calculate the result
+for (condition in conditions_of_interest) {
+  # Check if the condition is NA (skip it)
+  if (is.na(condition)) {
+    next  # Skip this iteration
+  }
+
+  # Filter the data to include only rows where CONDITION matches the current condition category
+  condition_data <- data[data$DEP == condition, ]
+
+  # Filter the data further to include only rows where ASR is between 0.7 and 1.3
+  condition_data <- condition_data[condition_data$SRATIO >= 0.7 & condition_data$SRATIO <= 1.3, ]
+
+  # Add a filter condition to exclude rows where 'primary_structure' is 'Outbuildings'
+  condition_data <- condition_data[condition_data$primary_structure != "Outbuildings", ]
+
+  # Add a filter condition for SALEDATE > 20220101
+  condition_data <- condition_data[condition_data$SALEDATE > 20220101, ]
+
+  # Calculate the number of sales in the current condition category based on a specific column (e.g., 'SRATIO')
+  num_sales <- sum(!is.na(condition_data$SRATIO))
+
+  # If 'count' is 0, skip the rest of the processing for this condition
+  if (num_sales == 0) {
+    next
+  }
+
+  # Initialize the variables
+  cod <- ""
+  median_val <- ""
+  mean_val <- ""
+
+  # Calculate the median of ASR for the current condition category
+  median_value <- median(condition_data$SRATIO, na.rm = TRUE)
+
+  # If there is only one sale, set the cod to "only one sale" and display median
+  if (num_sales == 1) {
+    cod <- "only one sale"
+    median_val <- round(median_value, 3)
+  } else {
+    # Calculate the ratio (subtract each element from the median and take the absolute value)
+    ratios <- abs(condition_data$SRATIO - median_value)
+
+    # Calculate the average of the ratios
+    average_ratio <- mean(ratios, na.rm = TRUE)
+
+    # Divide the average_ratio by the median and multiply by 100
+    cod <- round((average_ratio / median_value) * 100, 3)
+    median_val <- round(median_value, 3)
+    mean_value <- mean(condition_data$ASR, na.rm = TRUE)
+    mean_val <- round(mean_value, 3)
+  }
+
+  # Create a data frame with the condition name, count, cod, median, and mean, and store it in the results_list
+  result_df <- data.frame(Condition_Category = condition, count = num_sales, cod = cod, median = median_val, mean = mean_val)
+  results_list[[condition]] <- result_df
+}
+
+# Combine all the individual results into a single data frame
+for (result in results_list) {
+  Condition_cod <- rbind(Condition_cod, result)
+}
+
+# Print the Condition_cod data frame
+print(Condition_cod)
