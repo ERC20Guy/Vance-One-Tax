@@ -17,12 +17,6 @@ for (NEIGH_category in NEIGH_categories_of_interest) {
   #Add Heated SF to NEIGH_data
   NEIGH_data <- colnames(data)[colnames(data) == "HEATEDSF"] <- "HEATEDSF"
 
-  # Add a filter condition to exclude rows where 'GLA' is equal to 0
-  NEIGH_data <- NEIGH_data[NEIGH_data$HEATEDSF != 0, ]
-  
-  # Filter the data to include only rows where ASR is between 0.7 and 1.3
-  NEIGH_data <- NEIGH_data[NEIGH_data$SRATIO >= 0.7 & NEIGH_data$ASR <= 1.3, ]
-
   # Calculate the number of sales in the current NEIGH category
   num_sales <- nrow(NEIGH_data)
   
