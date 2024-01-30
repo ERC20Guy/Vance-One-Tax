@@ -1,0 +1,11 @@
+# Assuming 'data' is your data frame
+# Rename the column "PRIMARY STRUCTURE" to "primary_structure"
+colnames(data)[colnames(data) == "DESC"] <- "primary_structure"
+
+colnames(data)[colnames(data) == "QUALGRADE"] <- "grade"
+
+colnames(data)[colnames(data) == "HEATEDSF"] <- "GLA"
+
+colnames(data)[colnames(data) == "YR_BUILT"] <- "year_built"
+
+colnames(data)[colnames(data) == "MAPED_ACRE"] <- "lot_size"
