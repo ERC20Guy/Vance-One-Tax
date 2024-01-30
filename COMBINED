@@ -11,3 +11,59 @@ colnames(data)[colnames(data) == "YR_BUILT"] <- "year_built"
 colnames(data)[colnames(data) == "MAPED_ACRE"] <- "lot_size"
 
 colnames(data)[colnames(data) == "NEIGH"] <- "NH"
+
+colnames(data)[colnames(data) == "SRATIO"] <- "ASR"
+
+# Assuming 'data' is your data frame
+
+# Create an empty data frame to store the results
+NH_cod <- data.frame(NH = character(0), count = integer(0), cod = character(0), median = character(0), mean = character(0))
+
+# Define the NH categories of interest
+NH_categories_of_interest <- unique(data$NH)
+
+# Iterate through each NH category and calculate the result
+for (NH_category in NH_categories_of_interest) {
+  # Filter the data to include only rows where NH matches the current NH category
+  NH_data <- data[data$NH == NH_category, ]
+  
+  # Add a filter condition to exclude rows where 'GLA' is equal to 0
+  NH_data <- NH_data[NH_data$GLA != 0, ]
+  
+  # Filter the data to include only rows where ASR is between 0.7 and 1.3
+  NH_data <- NH_data[NH_data$ASR >= 0.7 & NH_data$ASR <= 1.3, ]
+
+  # Calculate the number of sales in the current NH category
+  num_sales <- nrow(NH_data)
+  
+  # Initialize the variables
+  cod <- ""
+  median_val <- ""
+  mean_val <- ""
+  
+  if (num_sales > 0) {
+    # Calculate the median and mean of ASR for the current NH category
+    median_value <- median(NH_data$ASR, na.rm = TRUE)
+    mean_value <- mean(NH_data$ASR, na.rm = TRUE)
+
+    # Calculate the ratio (subtract each element from the median and take the absolute value)
+    ratios <- abs(NH_data$ASR - median_value)
+    
+    # Calculate the average of the ratios
+    average_ratio <- mean(ratios, na.rm = TRUE)
+    
+    # Divide the average_ratio by the median and multiply by 100
+    cod <- round((average_ratio / median_value) * 100, 3)
+    median_val <- round(median_value, 3)
+  
+    # Calculate the mean value without trimming
+    mean_val <- round(mean_value, 3)
+  }
+  
+  # Create a data frame with the NH name, count, cod, median, and mean, and append it to NH_cod
+  result_df <- data.frame(NH = NH_category, count = num_sales, cod = cod, median = median_val, mean = mean_val)
+  NH_cod <- rbind(NH_cod, result_df)
+}
+
+# Print the NH_cod data frame
+print(NH_cod)
