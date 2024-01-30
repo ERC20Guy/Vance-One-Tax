@@ -29,7 +29,10 @@ for (NH_category in NH_categories_of_interest) {
   
   # Add a filter condition to exclude rows where 'GLA' is equal to 0
   NH_data <- NH_data[NH_data$GLA != 0, ]
-  
+
+# Filter the data to include only rows where DESC5 is 'C', 'I', or 'F'
+  NH_data <- NH_data[NH_data$DESC5 %in% c('C', 'I', 'F'), ]
+
   # Filter the data to include only rows where ASR is between 0.7 and 1.3
   NH_data <- NH_data[NH_data$ASR >= 0.7 & NH_data$ASR <= 1.3, ]
 
