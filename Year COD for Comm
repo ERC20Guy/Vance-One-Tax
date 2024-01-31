@@ -1,0 +1,102 @@
+# Create an empty data frame to store the results
+Year_cod <- data.frame(Year_Range = character(0), count = integer(0), cod = character(0), median = character(0), mean = character(0))
+
+# Define the year ranges of interest
+year_ranges_of_interest <- c("1700-1799", "1800-1849")
+start_year <- 1850
+current_year <- as.integer(format(Sys.Date(), "%Y"))  # Get the current year
+
+while (start_year <= current_year) {
+  end_year <- start_year + 9
+  year_range <- paste(start_year, end_year, sep = "-")
+  
+  # Filter the data to include only rows where 'year_built' falls within the current range
+  year_data <- data[data$year_built >= start_year & data$year_built <= end_year, ]
+  
+  # Filter the data to include only rows where DESC5 is 'C', 'I', or 'F'
+  year_data <- year_data[year_data$DESC5 %in% c('C', 'I', 'F'), ]
+
+  # Add a filter condition to exclude rows where 'GLA' is equal to 0
+  year_data <- year_data[year_data$GLA != 0, ]
+  
+  # Filter the data to include only rows where 'ASR' is between 0.7 and 1.3
+  year_data <- year_data[year_data$ASR >= 0.7 & year_data$ASR <= 1.3, ]
+
+  # Calculate the number of sales in the current year range
+  num_sales <- sum(!is.na(year_data$ASR))
+  
+  # Initialize the variables
+  cod <- ""
+  median_val <- ""
+  mean_val <- ""
+  
+  if (num_sales > 0) {
+    # Calculate the median and mean of ASR for the current year range
+    median_value <- median(year_data$ASR, na.rm = TRUE)
+    mean_value <- mean(year_data$ASR, na.rm = TRUE)
+
+    # Calculate the ratio (subtract each element from the median and take the absolute value)
+    ratios <- abs(year_data$ASR - median_value)
+    
+    # Calculate the average of the ratios
+    average_ratio <- mean(ratios, na.rm = TRUE)
+    
+    # Divide the average_ratio by the median and multiply by 100
+    cod <- round((average_ratio / median_value) * 100, 3)
+    median_val <- round(median_value, 3)
+  
+    # Calculate the mean value without trimming
+    mean_val <- round(mean_value, 3)
+  }
+  
+  # Create a data frame with the year range, count, cod, median, and mean, and append it to Year_cod
+  result_df <- data.frame(Year_Range = year_range, count = num_sales, cod = cod, median = median_val, mean = mean_val)
+  Year_cod <- rbind(Year_cod, result_df)
+  
+  # Increment the start_year by 10 for the next iteration
+  start_year <- start_year + 10
+}
+
+# Add a separate category for the current year
+current_year_range <- "Current Year"
+current_year_data <- data[data$year_built == current_year, ]
+
+# Add a filter condition to exclude rows where 'GLA' is equal to 0
+current_year_data <- current_year_data[current_year_data$GLA != 0, ]
+
+# Filter the data to include only rows where 'ASR' is between 0.7 and 1.3
+current_year_data <- current_year_data[current_year_data$ASR >= 0.7 & current_year_data$ASR <= 1.3, ]
+
+# Calculate the number of sales in the current year
+num_sales <- sum(!is.na(current_year_data$ASR))
+
+# Initialize the variables
+cod <- ""
+median_val <- ""
+mean_val <- ""
+
+if (num_sales > 0) {
+  # Calculate the median and mean of ASR for the current year
+  median_value <- median(current_year_data$ASR, na.rm = TRUE)
+  mean_value <- mean(current_year_data$ASR, na.rm = TRUE)
+
+  # Calculate the ratio (subtract each element from the median and take the absolute value)
+  ratios <- abs(current_year_data$ASR - median_value)
+  
+  # Calculate the average of the ratios
+  average_ratio <- mean(ratios, na.rm = TRUE)
+  
+  # Divide the average_ratio by the median and multiply by 100
+  cod <- round((average_ratio / median_value) * 100, 3)
+  median_val <- round(median_value, 3)
+  
+  # Calculate the mean value without trimming
+  mean_val <- round(mean_value, 3)
+}
+
+# Create a data frame for the current year and append it to Year_cod
+result_df <- data.frame(Year_Range = current_year_range, count = num_sales, cod = cod, median = median_val, mean = mean_val)
+Year_cod <- rbind(Year_cod, result_df)
+
+# Print the Year_cod data frame
+print(Year_cod)
