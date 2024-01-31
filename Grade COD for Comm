@@ -1,0 +1,54 @@
+# Assuming 'data' is your data frame
+
+# Create an empty data frame to store the results
+grade_cod <- data.frame(Grade = character(0), count = integer(0), cod = character(0), median = numeric(0), mean = numeric(0))
+
+# Define the grade categories of interest, excluding <NA>
+grades_of_interest <- unique(data$grade)
+grades_of_interest <- grades_of_interest[!is.na(grades_of_interest)]
+
+# Iterate through each grade category and calculate the result
+for (grade in grades_of_interest) {
+  # Filter the data to include only rows where grade matches the current grade category
+  grade_data <- data[data$grade == grade, ]
+  
+  # Add a filter condition to exclude rows where 'GLA' is equal to 0
+  grade_data <- grade_data[grade_data$GLA != 0, ]
+  
+  # Calculate the number of sales in the current grade category based on non-NA values in the 'ASR' column
+  num_sales <- sum(!is.na(grade_data$ASR))
+  
+  # Initialize the variables
+  cod <- ""
+  median_val <- 0
+  mean_val <- 0
+  
+  if (num_sales > 0) {
+    # Trim the data by removing values greater than 1.3 and less than 0.7
+    grade_data <- grade_data[grade_data$ASR <= 1.3 & grade_data$ASR >= 0.7, ]
+
+    # Filter the data to include only rows where DESC5 is 'C', 'I', 'F', or'R'
+    grade_data <- grade_data[grade_data$DESC5 %in% c('C', 'I', 'F'), ]
+    
+    # Calculate the median of ASR for the current grade category
+    median_value <- median(grade_data$ASR, na.rm = TRUE)
+    
+    # Calculate the ratio (subtract each element from the median and take the absolute value)
+    ratios <- abs(grade_data$ASR - median_value)
+    
+    # Calculate the average of the ratios
+    average_ratio <- mean(ratios, na.rm = TRUE)
+    
+    # Divide the average_ratio by the median and multiply by 100
+    cod <- round((average_ratio / median_value) * 100, 3)
+    median_val <- round(median_value, 3)
+    mean_val <- round(mean(grade_data$ASR, na.rm = TRUE), 3)
+  }
+  
+  # Create a data frame with the grade name, count, cod, median, and mean, and append it to grade_cod
+  result_df <- data.frame(Grade = grade, count = num_sales, cod = cod, median = median_val, mean = mean_val)
+  grade_cod <- rbind(grade_cod, result_df)
+}
+
+# Print the grade_cod data frame
+print(grade_cod)
