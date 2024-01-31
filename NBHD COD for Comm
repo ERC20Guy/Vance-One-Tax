@@ -70,3 +70,11 @@ for (NH_category in NH_categories_of_interest) {
 
 # Print the NH_cod data frame
 print(NH_cod)
+
+library(openxlsx)
+
+# Specify the full file path using escaped backslashes
+file_path <- "C:\\VanceReview\\VCOMM.xlsx"
+
+# Write the dataframe to Excel
+write.xlsx(NH_cod, file_path, rowNames = FALSE)
