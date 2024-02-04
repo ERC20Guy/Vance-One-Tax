@@ -27,9 +27,6 @@ for (NH_category in NH_categories_of_interest) {
   # Filter the data to include only rows where NH matches the current NH category
   NH_data <- data[data$NH == NH_category, ]
   
-  # Add a filter condition to exclude rows where 'GLA' is equal to 0
-  NH_data <- NH_data[NH_data$GLA != 0, ]
-
 # Filter the data to include only rows where DESC5 is 'C', 'I', or 'F'
   NH_data <- NH_data[NH_data$DESC5 %in% c('R'), ]
 
