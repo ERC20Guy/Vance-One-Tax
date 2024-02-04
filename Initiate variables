@@ -11,3 +11,5 @@ colnames(data)[colnames(data) == "YR_BUILT"] <- "year_built"
 colnames(data)[colnames(data) == "MAPED_ACRE"] <- "lot_size"
 
 colnames(data)[colnames(data) == "NEIGH"] <- "NH"
+
+colnames(data)[colnames(data) == "AMQFCD"] <- "qual"
