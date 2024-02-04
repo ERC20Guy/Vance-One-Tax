@@ -1,0 +1,2 @@
+  # Add a filter condition to exclude rows where 'GLA' is equal to 0
+  NH_data <- NH_data[NH_data$GLA != 0, ]
