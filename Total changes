@@ -1,0 +1,54 @@
+# Assuming 'data' is your data frame
+colnames(data)[colnames(data) == "NEIGH"] <- "NH"
+colnames(data)[colnames(data) == "% Tchange"] <- "TOTCHANGE"
+
+# Define the NH categories of interest
+NH_categories_of_interest <- unique(data$NH)
+
+# Create an empty data frame to store the results
+NH_combined_data <- data.frame(NH = character(0), avg_TOTCHANGE = numeric(0), Total_PREV_FMV = numeric(0), Total_TOTFMV = numeric(0), Diff_TOTFMV_PREV_FMV = numeric(0))
+
+# Iterate through each NH category
+for (NH_category in NH_categories_of_interest) {
+  # Filter the data to include only rows where NH matches the current NH category and TOTCHANGE is not zero or NA
+  NH_data <- data[data$NH == NH_category & !is.na(data$TOTCHANGE) & data$TOTCHANGE != 0, ]
+
+  # Trim the raw data of TOTCHANGE
+  NH_data <- NH_data[complete.cases(NH_data$TOTCHANGE), ]  # Remove rows with missing values in TOTCHANGE
+  if (nrow(NH_data) > 0) {
+    lower_limit <- quantile(NH_data$TOTCHANGE, 0.05, na.rm = TRUE)
+    upper_limit <- quantile(NH_data$TOTCHANGE, 0.95, na.rm = TRUE)
+    NH_data <- NH_data[NH_data$TOTCHANGE >= lower_limit & NH_data$TOTCHANGE <= upper_limit, ]
+  }
+
+  # Check if there are valid values for calculation
+  if (nrow(NH_data) > 0) {
+    # Calculate the average TOTCHANGE for the current NH category
+    avg_TOTCHANGE <- mean(NH_data$TOTCHANGE, na.rm = TRUE) * 100
+
+    # Calculate the total PREV_FMV and TOTFMV for the current NH category
+    total_PREV_FMV <- sum(NH_data$PREV_FMV, na.rm = TRUE)
+    total_TOTFMV <- sum(NH_data$TOTFMV, na.rm = TRUE)
+
+    # Calculate the difference between TOTFMV and PREV_FMV
+    diff_TOTFMV_PREV_FMV <- total_TOTFMV - total_PREV_FMV
+
+    # Create a data frame with the NH name, average TOTCHANGE, total PREV_FMV, total TOTFMV, and difference
+    result_df <- data.frame(NH = NH_category, avg_TOTCHANGE = avg_TOTCHANGE, Total_PREV_FMV = total_PREV_FMV, Total_TOTFMV = total_TOTFMV, Diff_TOTFMV_PREV_FMV = diff_TOTFMV_PREV_FMV)
+
+    # Append it to NH_combined_data
+    NH_combined_data <- rbind(NH_combined_data, result_df)
+  }
+}
+
+# Print the trimmed combined data frame
+print(NH_combined_data)
+
+
+library(openxlsx)
+
+# Specify the full file path using escaped backslashes
+file_path <- "C:\\VanceReview\\TOTCHANGE.xlsx"
+
+# Write the data frame to Excel
+write.xlsx(NH_combined_data, file_path, rowNames = FALSE)
