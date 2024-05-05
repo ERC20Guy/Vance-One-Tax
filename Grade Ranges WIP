@@ -1,7 +1,7 @@
 # Assuming 'data' is your data frame
 
 # Create an empty data frame to store the results
-grade_cod <- data.frame(Grade = character(0), count = integer(0), cod = character(0), median = numeric(0), mean = numeric(0))
+grade_cod_iqr <- data.frame(Grade = character(0), count = integer(0), cod = character(0), median = numeric(0), mean = numeric(0), lower_range = numeric(0), upper_range = numeric(0))
 
 # Define the grade categories of interest, excluding <NA>
 grades_of_interest <- unique(data$grade)
@@ -15,6 +15,9 @@ for (grade in grades_of_interest) {
   # Add a filter condition to exclude rows where 'GLA' is equal to 0
   grade_data <- grade_data[grade_data$GLA != 0, ]
   
+  # Filter the data to include only rows where 'AMQFCD' is blank
+  grade_data <- grade_data[grade_data$AMQFCD == "", ]
+  
   # Calculate the number of sales in the current grade category based on non-NA values in the 'ASR' column
   num_sales <- sum(!is.na(grade_data$ASR))
   
@@ -22,6 +25,8 @@ for (grade in grades_of_interest) {
   cod <- ""
   median_val <- 0
   mean_val <- 0
+  lower_range <- 0
+  upper_range <- 0
   
   if (num_sales > 0) {
     # Trim the data by removing values greater than 1.3 and less than 0.7
@@ -43,12 +48,26 @@ for (grade in grades_of_interest) {
     cod <- round((average_ratio / median_value) * 100, 3)
     median_val <- round(median_value, 3)
     mean_val <- round(mean(grade_data$ASR, na.rm = TRUE), 3)
+    
+    # Filter the data to include only non-NA values in the 'GLA' column
+    grade_data <- grade_data[!is.na(grade_data$GLA), ]
+  
+    # Calculate the lower and upper quartiles (Q1 and Q3) for the current grade category
+    lower_quartile <- quantile(grade_data$GLA, 0.25)
+    upper_quartile <- quantile(grade_data$GLA, 0.75)
+    
+    # Calculate the Interquartile Range (IQR) for the current grade category
+    iqr <- upper_quartile - lower_quartile
+    
+    # Calculate the lower and upper range
+    lower_range <- lower_quartile - 1.5 * iqr
+    upper_range <- upper_quartile + 1.5 * iqr
   }
   
-  # Create a data frame with the grade name, count, cod, median, and mean, and append it to grade_cod
-  result_df <- data.frame(Grade = grade, count = num_sales, cod = cod, median = median_val, mean = mean_val)
-  grade_cod <- rbind(grade_cod, result_df)
+  # Create a data frame with the grade name, count, cod, median, mean, lower range, and upper range, and append it to grade_cod_iqr
+  result_df <- data.frame(Grade = grade, count = num_sales, cod = cod, median = median_val, mean = mean_val, lower_range = lower_range, upper_range = upper_range)
+  grade_cod_iqr <- rbind(grade_cod_iqr, result_df)
 }
 
-# Print the grade_cod data frame
-print(grade_cod)
+# Print the grade_cod_iqr data frame
+print(grade_cod_iqr)
